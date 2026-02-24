@@ -1,6 +1,6 @@
 # PCA-Based Macro Slowdown Indicator
 
-**Team:** Sudhan Adithya · Kavin Dhanasekar (kd3384)
+**Team:** Siddhanth Yadav · Kavin Dhanasekar · Sudhan Adithya
 
 A monthly macro activity / slowdown indicator built with Principal Component Analysis on FRED economic data, with lead-lag financial market linkage analysis.
 
