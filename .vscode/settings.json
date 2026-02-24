@@ -1,0 +1,8 @@
+{
+    "python.defaultInterpreterPath": "/Users/sudhan/.gemini/antigravity/scratch/macro-pca-indicator/.venv/bin/python",
+    "python.analysis.extraPaths": [
+        "/Users/sudhan/.gemini/antigravity/scratch/macro-pca-indicator"
+    ],
+    "python.analysis.useLibraryCodeForTypes": true,
+    "python.terminal.activateEnvInSelectedTerminal": true
+}
