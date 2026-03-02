@@ -173,6 +173,48 @@ def fetch_reference_series(fred: Fred, save: bool = True) -> pd.DataFrame:
     return pd.DataFrame(frames)
 
 
+def fetch_portfolio_assets(save: bool = True) -> pd.DataFrame:
+    """
+    Fetch historical daily data for portfolio assets (SPY, AGG) using yfinance.
+    Saves results to data/raw/.
+    """
+    os.makedirs(config.RAW_DATA_DIR, exist_ok=True)
+    tickers = list(config.PORTFOLIO_ASSETS.values())
+    print(f"  [WAIT] Fetching portfolio assets: {tickers}...")
+    
+    # Fetch data
+    df = yf.download(tickers, start=config.START_DATE)
+    
+    if df.empty:
+        print("  [FAIL] No data fetched for portfolio assets.")
+        return pd.DataFrame()
+
+    # We want 'Adj Close' or 'Close' for total returns
+    if "Adj Close" in df.columns.levels[0]:
+        adj_close = df["Adj Close"]
+    elif "Close" in df.columns.levels[0]:
+        adj_close = df["Close"]
+    else:
+        # Fallback for older pandas/yfinance or single level
+        cols = [c for c in df.columns if "Adj Close" in c or "Close" in c]
+        if not cols:
+            print(f"  [FAIL] Could not find Close/Adj Close in columns: {df.columns}")
+            return pd.DataFrame()
+        adj_close = df[cols]
+    
+    # Rename columns to our config keys
+    rename_map = {v: k for k, v in config.PORTFOLIO_ASSETS.items()}
+    adj_close = adj_close.rename(columns=rename_map)
+    
+    if save:
+        for col in adj_close.columns:
+            path = os.path.join(config.RAW_DATA_DIR, f"asset_{col}.csv")
+            adj_close[col].to_csv(path, header=True)
+            print(f"  [OK]  portfolio_asset:{col} saved to {path}")
+
+    return adj_close
+
+
 def load_raw_series(col_name: str) -> pd.Series:
     """Load a previously saved raw CSV from data/raw/."""
     path = os.path.join(config.RAW_DATA_DIR, f"{col_name}.csv")

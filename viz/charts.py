@@ -332,3 +332,77 @@ def plot_lead_lag_betas(
 
     plt.tight_layout()
     return fig, ax
+
+
+# ---------------------------------------------------------------------------
+# Portfolio Performance Chart
+# ---------------------------------------------------------------------------
+
+def plot_portfolio_performance(
+    results: pd.DataFrame,
+    recession_periods: List[Tuple] = None,
+    regime_periods: List[Tuple] = None,
+    title: str = "Portfolio Performance: Dynamic Strategy vs. 60/40 Benchmark",
+) -> Tuple[plt.Figure, plt.Axes]:
+    """
+    Plot cumulative returns of benchmark vs. strategy with regime shading.
+    """
+    fig, ax = plt.subplots(figsize=config.FIG_SIZE_WIDE)
+    
+    # Shade recessions/regimes
+    if recession_periods:
+        shade_recessions(ax, recession_periods)
+    if regime_periods:
+        shade_regimes(ax, regime_periods)
+        
+    ax.plot(results.index, results['cum_benchmark'], color="#333333", 
+            linewidth=1.5, label="Benchmark (60/40)", alpha=0.8)
+    
+    if 'cum_binary' in results.columns:
+        ax.plot(results.index, results['cum_binary'], color="#2c7bb6", 
+                linewidth=1.5, label="Binary Strategy", alpha=0.7)
+        
+    if 'cum_continuous' in results.columns:
+        ax.plot(results.index, results['cum_continuous'], color="#d7191c", 
+                linewidth=2.0, label="Continuous Logistic Strategy")
+    
+    ax.set_title(title, fontsize=13, fontweight="bold")
+    ax.set_ylabel("Cumulative Total Return ($1 Start)")
+    ax.set_xlabel("Date")
+    ax.legend(loc="upper left")
+    
+    plt.tight_layout()
+    return fig, ax
+
+
+# ---------------------------------------------------------------------------
+# Risk Score and Weight Attribution
+# ---------------------------------------------------------------------------
+
+def plot_risk_and_weights(
+    results: pd.DataFrame,
+    title: str = "Continuous Strategy: Risk Score vs. Equity Weight",
+) -> Tuple[plt.Figure, plt.Axes]:
+    """
+    Plot the Risk Score and the resulting Equity Weight over time.
+    """
+    fig, ax1 = plt.subplots(figsize=config.FIG_SIZE_WIDE)
+    
+    ax1.plot(results.index, results['risk_score'], color="#d7191c", 
+             linewidth=1.5, label="Risk Score (0-1)")
+    ax1.set_ylabel("Risk Score", color="#d7191c")
+    ax1.tick_params(axis='y', labelcolor="#d7191c")
+    ax1.set_ylim(-0.05, 1.05)
+    
+    ax2 = ax1.twinx()
+    ax2.plot(results.index, results['weight_stocks'], color="#2c7bb6", 
+             linewidth=2.0, label="Equity Weight (%)")
+    ax2.set_ylabel("Equity Weight", color="#2c7bb6")
+    ax2.tick_params(axis='y', labelcolor="#2c7bb6")
+    ax2.set_ylim(0, 1.0)
+    
+    ax1.set_title(title, fontsize=13, fontweight="bold")
+    ax1.set_xlabel("Date")
+    
+    fig.tight_layout()
+    return fig, ax1

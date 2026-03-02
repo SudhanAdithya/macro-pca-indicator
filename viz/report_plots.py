@@ -20,6 +20,8 @@ from viz.charts import (
     plot_regime_periods,
     plot_correlation_heatmap,
     plot_lead_lag_betas,
+    plot_portfolio_performance,
+    plot_risk_and_weights,
 )
 
 
@@ -41,6 +43,7 @@ def generate_all_report_plots(
     recession_periods: list,
     corr_matrix: pd.DataFrame,
     bivariate_lead_lag_df: pd.DataFrame,
+    portfolio_results: pd.DataFrame = None,
 ) -> dict:
     """
     Generate and save all report charts. Returns a dict of {name: filepath}.
@@ -96,6 +99,22 @@ def generate_all_report_plots(
     if bivariate_lead_lag_df is not None and len(bivariate_lead_lag_df) > 0:
         fig, _ = plot_lead_lag_betas(bivariate_lead_lag_df)
         saved["lead_lag"] = _save(fig, "06_lead_lag_betas.png")
+        fig.clear()
+
+    # 7. Portfolio Performance
+    if portfolio_results is not None:
+        fig, _ = plot_portfolio_performance(
+            portfolio_results,
+            recession_periods=recession_periods,
+            regime_periods=regime_periods_list
+        )
+        saved["portfolio"] = _save(fig, "07_portfolio_performance.png")
+        fig.clear()
+
+    # 8. Risk and Weights (for continuous strategy)
+    if portfolio_results is not None and 'risk_score' in portfolio_results.columns:
+        fig, _ = plot_risk_and_weights(portfolio_results)
+        saved["risk_weights"] = _save(fig, "08_risk_and_weights.png")
         fig.clear()
 
     print(f"\nAll charts saved to: {config.CHARTS_DIR}/")

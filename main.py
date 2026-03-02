@@ -40,6 +40,7 @@ from pca.build_indicator import run_pca, extract_pc1, normalize_pc1_sign, loadin
 from pca.regime import smooth_pc1, classify_regime, regime_periods, nber_recession_periods, compare_with_nber
 from analysis.financial_linkage import compute_correlations, contemporaneous_regressions, regression_summary_table
 from analysis.lead_lag import bivariate_lead_lag
+from analysis.portfolio_engine import PortfolioEngine, save_portfolio_results
 from viz.report_plots import generate_all_report_plots
 
 
@@ -76,6 +77,9 @@ def stage_fetch(args) -> None:
     fetch_all_macro(fred)
     print("  Financial variables:")
     fetch_all_financial(fred)
+    print("  Portfolio assets:")
+    from data.fetch_data import fetch_portfolio_assets
+    fetch_portfolio_assets()
     print("  Reference series:")
     fetch_reference_series(fred)
 
@@ -234,7 +238,6 @@ def stage_financial_linkage(pc1: pd.Series, panel_std: pd.DataFrame):
     print(ll_df)
     save_csv(ll_df, os.path.join(config.TABLES_DIR, "lead_lag_bivariate.csv"))
 
-    # Build correlation matrix for heatmap (include pc1)
     combined = pd.concat([pc1.rename("pc1"), fin_panel], axis=1).dropna()
     corr_matrix = combined.corr()
 
@@ -242,11 +245,49 @@ def stage_financial_linkage(pc1: pd.Series, panel_std: pd.DataFrame):
 
 
 # ---------------------------------------------------------------------------
+# Stage 8: Portfolio Optimization
+# ---------------------------------------------------------------------------
+
+def stage_portfolio_optimization(pc1_smooth: pd.Series, regime_series: pd.Series):
+    print("\n=== Stage 8: Portfolio Optimization ===")
+    
+    # Load portfolio assets
+    from data.fetch_data import load_raw_series
+    assets = {}
+    for col in config.PORTFOLIO_ASSETS:
+        try:
+            assets[col] = load_raw_series(f"asset_{col}")
+        except FileNotFoundError:
+            print(f"  [MISS] asset_{col} — no raw file. Run with --fetch.")
+            return None, None
+            
+    asset_prices = pd.DataFrame(assets)
+    
+    # Initialize engine
+    engine = PortfolioEngine(asset_prices, pc1_smooth=pc1_smooth, regimes=regime_series)
+    
+    # Run backtest
+    print("  Running backtest (Binary + Continuous)...")
+    results = engine.run_backtest()
+    
+    # Calculate metrics
+    print("  Calculating metrics...")
+    metrics = engine.calculate_metrics(results)
+    print(metrics)
+    
+    # Save results
+    save_portfolio_results(results, metrics)
+    
+    return results, metrics
+
+
+# ---------------------------------------------------------------------------
 # Stage 7: Charts
 # ---------------------------------------------------------------------------
 
 def stage_charts(pc1, pc1_smooth, loadings_df, variance_df,
-                 slow_periods, rec_periods, corr_matrix, ll_df):
+                 slow_periods, rec_periods, corr_matrix, ll_df,
+                 portfolio_results=None):
     print("\n=== Stage 7: Generating Charts ===")
     generate_all_report_plots(
         pc1=pc1,
@@ -257,6 +298,7 @@ def stage_charts(pc1, pc1_smooth, loadings_df, variance_df,
         recession_periods=rec_periods,
         corr_matrix=corr_matrix if corr_matrix is not None else pd.DataFrame(),
         bivariate_lead_lag_df=ll_df if ll_df is not None else pd.DataFrame(),
+        portfolio_results=portfolio_results,
     )
 
 
@@ -294,9 +336,13 @@ def main():
     # Stage 6: Financial linkage
     corr_matrix, ll_df = stage_financial_linkage(pc1, panel_std)
 
+    # Stage 8: Portfolio Optimization
+    portfolio_results, portfolio_metrics = stage_portfolio_optimization(pc1_smooth, regime_series)
+
     # Stage 7: Charts
     stage_charts(pc1, pc1_smooth, loadings_df, variance_df,
-                 slow_periods, rec_periods, corr_matrix, ll_df)
+                 slow_periods, rec_periods, corr_matrix, ll_df,
+                 portfolio_results=portfolio_results)
 
     print("\n✅  Pipeline complete. Outputs in:", config.OUTPUTS_DIR)
 

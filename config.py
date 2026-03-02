@@ -137,3 +137,40 @@ SLOWDOWN_SHADE_COLOR  = "#ffe4b5"
 FIG_DPI               = 150
 FIG_SIZE_WIDE         = (14, 5)
 FIG_SIZE_SQUARE       = (8, 6)
+# ---------------------------------------------------------------------------
+# Portfolio Optimization Parameters
+# ---------------------------------------------------------------------------
+PORTFOLIO_ASSETS = {
+    "stocks": "SPY",   # S&P 500 ETF
+    "bonds":  "AGG"    # iShares Core U.S. Aggregate Bond ETF
+}
+
+# Default 60/40 benchmark
+BENCHMARK_WEIGHTS = {
+    "stocks": 0.60,
+    "bonds":  0.40
+}
+
+# Dynamic weights based on regime
+# Expansion: Overweight stocks
+# Slowdown:  Underweight stocks (Defensive)
+REGIME_WEIGHT_MAP = {
+    0: {"stocks": 0.60, "bonds": 0.40},  # Normal/Expansion (Benchmark)
+    1: {"stocks": 0.20, "bonds": 0.80}   # Slowdown (Defensive)
+}
+
+# Continuous Logistic Mapping Parameters
+# c: Center (threshold) where Risk = 0.5
+# k: Smoothness (higher = slower transition)
+LOGISTIC_PARAMS = {
+    "c": 0.0,
+    "k": 0.5
+}
+
+CONTINUOUS_WEIGHT_LIMITS = {
+    "min_equity": 0.10,
+    "max_equity": 0.90
+}
+
+PORTFOLIO_METRICS_PATH = "outputs/tables/portfolio_metrics.csv"
+PORTFOLIO_SERIES_PATH  = "outputs/portfolio_backtest.csv"
