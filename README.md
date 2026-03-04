@@ -1,8 +1,80 @@
-# PCA-Based Macro Slowdown Indicator
+# Macro-PCA Recession Indicator & Portfolio Optimization
 
 **Team:** Siddhanth Yadav · Kavin Dhanasekar · Sudhan Adithya
 
-A monthly macro activity / slowdown indicator built with Principal Component Analysis on FRED economic data, with lead-lag financial market linkage analysis.
+This project implements a robust macroeconomic signaling engine designed to identify **Economic Recession Regimes**. By applying Principal Component Analysis (PCA) to a broad panel of high-frequency indicators, we extract a unified "latent" signal that captures synchronized economic contractions and drives high-precision tactical asset allocation.
+
+---
+
+## Project Methodology
+
+```mermaid
+graph TD
+    subgraph "Phase 1: Data Synthesis"
+        A[FRED: 10+ Macro Indicators] --> C[Standardization Layer]
+        B[Daily Asset returns] --> E
+        C --> D[PCA Engine]
+        D --> E[PC1: Latent Factor]
+    end
+
+    subgraph "Phase 2: Regime Finding"
+        E --> F[Zero-Point Calibration]
+        F --> G[NBER Historical Validation]
+        G --> H[Recession Regime Alerts]
+    end
+
+    subgraph "Phase 3: Tactical Application"
+        H --> I[Logistic Risk Mapping]
+        I --> J[Continuous Portfolio Strategy]
+        J --> K[Alpha Generation & Protection]
+    end
+
+    style D fill:#f9f,stroke:#333,stroke-width:2px
+    style H fill:#bbf,stroke:#333,stroke-width:2px
+    style J fill:#dfd,stroke:#333,stroke-width:4px
+```
+
+---
+
+## 1. Methodology: The PCA Engine
+The core of this project is the **Synthesis of Disparate Data**. Instead of looking at a single number, we look at the covariance of the entire "economic body."
+
+### 10-Variable Macro Panel
+We process data from FRED across four pillars:
+1.  **Real Activity**: Industrial Production, Mfg New Orders, Capacity Utilization.
+2.  **Labor Market**: Unemployment Rate (inverted), Real Personal Income.
+3.  **Consumption**: Retail Sales, Housing Starts.
+4.  **Financial Proxies**: S&P 500 Returns, Yield Curve (10Y-2Y), HY Spreads.
+
+### Signal Extraction
+- **Standardization**: Indicators are standardized into Z-scores.
+- **Factor Extraction**: PCA identifies "Principal Component 1" (PC1), explaining **~32.5% of US economic variance**.
+- **Interpretation**: PC1 > 0 signals Expansion; PC1 < 0 signals a synchronized Slowdown.
+
+---
+
+## 2. Recession Regime Identification
+We calibrate the PC1 signal against 25 years of history (2000-2026).
+
+- **NBER Validation**: The model achieves a **96.4% Recall** against historical NBER recession months.
+- **Precision**: By filtering out individual indicator noise, we identify regimes with high macro conviction.
+
+---
+
+## 3. Application: Dynamic Portfolio Optimization
+As a practical extension, we developed a tactical strategy that scales equity exposure based on the macro signal.
+
+### Smooth Logistic Mapping
+Instead of binary flips, we apply a smooth function to calculate a **Risk Score (0 to 1)**:
+- **High-Precision Scaling**: Exact decimal weights (e.g., 68.32% Stocks) are calculated daily.
+- **Boom Scenario**: Model allows up to **90% equity exposure** during periods of extreme PC1 strength.
+
+### Performance Summary (2003-2026)
+| Metric | Benchmark (60/40) | **Macro-PCA Continuous** | Improvement |
+| :--- | :--- | :--- | :--- |
+| **Annualized Return** | 8.28% | **8.68%** | **+0.40% (Alpha)** |
+| **Sharpe Ratio** | 0.73 | **0.98** | **+34% Efficiency** |
+| **Max Drawdown** | -34.70% | **-20.74%** | **+14% Protection** |
 
 ---
 
@@ -10,157 +82,38 @@ A monthly macro activity / slowdown indicator built with Principal Component Ana
 
 ```
 macro-pca-indicator/
-├── config.py                     # All FRED IDs, transform rules, sign map, parameters
 ├── main.py                       # End-to-end pipeline runner
-├── requirements.txt
-├── .env.example                  # Copy to .env and add FRED_API_KEY
-│
-├── data/
-│   ├── fetch_data.py             # FRED API fetcher
-│   ├── align.py                  # Daily → monthly conversion, panel merge
-│   ├── transform.py              # pct_change, log_return, level transforms
-│   ├── standardize.py            # Z-score + sign alignment
-│   ├── raw/                      # Downloaded raw CSVs (git-ignored)
-│   └── processed/                # Cleaned panel CSVs (git-ignored)
-│
-├── pca/
-│   ├── build_indicator.py        # PCA, PC1 extraction, loadings, variance
-│   └── regime.py                 # Slowdown regime classification & NBER comparison
-│
+├── config.py                     # Hyperparameters & Asset Limits
 ├── analysis/
-│   ├── financial_linkage.py      # Contemporaneous correlations & regressions
-│   ├── lead_lag.py               # Lead-lag predictive regressions
-│   └── recession_model.py        # [Optional] Logistic recession probability model
-│
-├── viz/
-│   ├── charts.py                 # Reusable chart functions
-│   └── report_plots.py           # Generates & saves all report charts
-│
-├── notebooks/
-│   ├── 01_data_exploration.ipynb
-│   ├── 02_pca_signal.ipynb
-│   ├── 03_financial_linkage.ipynb
-│   └── 04_regime_analysis.ipynb
-│
-└── outputs/
-    ├── pc1_series.csv
-    ├── loadings.csv
-    ├── regime_series.csv
-    ├── tables/                   # Regression & stats tables
-    └── charts/                   # PNG charts (01–06)
+│   ├── portfolio_engine.py       # Continuous Backtesting Engine
+│   └── recession_model.py        # Regime Classification Logic
+├── pca/
+│   └── build_indicator.py        # PCA Factor Extraction
+├── data/
+│   ├── fetch_data.py             # FRED & Finance Data Ingestion
+│   └── transform.py              # Z-Score standardization
+└── viz/
+    └── report_plots.py           # Multi-axis Visualizations
 ```
 
 ---
 
-## Setup
+## Setup & Usage
 
 ### 1. Install dependencies
-
 ```bash
-cd macro-pca-indicator
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Get a FRED API key
-
-Register at [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html) — it's free.
-
-```bash
-cp .env.example .env
-# Edit .env and set: FRED_API_KEY=your_actual_key_here
+### 2. Configure API Key
+Create a `.env` file with your FRED API key:
+```
+FRED_API_KEY=your_key_here
 ```
 
----
-
-## Running the Pipeline
-
-### Full pipeline (fetches data + runs all stages)
-
-```bash
-python main.py
-```
-
-### Re-run without re-fetching FRED data
-
-```bash
-python main.py --no-fetch
-```
-
-### Force re-download from FRED
-
+### 3. Run Pipeline
 ```bash
 python main.py --fetch
 ```
 
----
-
-## Methodology Summary
-
-| Stage | Description |
-|-------|-------------|
-| 1 | Fetch raw monthly macro + daily financial series from FRED |
-| 2 | Align to monthly frequency (month-end for S&P 500, avg for others) |
-| 3 | Transform (MoM % change for production/sales, log return for equities, levels for PMI/VIX) |
-| 4 | Z-score standardize + sign-align (higher = stronger macro) |
-| 5 | Run PCA on macro fundamentals only; extract PC1 as macro signal |
-| 6 | Classify slowdown regime (PC1 < 0 on 3-month smooth) |
-| 7 | Contemporaneous & lead-lag regressions vs. financial variables |
-
-### Macro PCA Variables
-
-| Variable | FRED ID | Transform | Sign |
-|----------|---------|-----------|------|
-| Industrial Production | INDPRO | MoM % | + |
-| Retail Sales | RSAFS | MoM % | + |
-| Unemployment Rate | UNRATE | Level | − (flipped) |
-| Housing Starts | HOUST | MoM % | + |
-| Capacity Utilization | TCU | Level | + |
-| Real Personal Income ex. Transfers | W875RX1 | MoM % | + |
-| Mfg New Orders | AMTMNO | MoM % | + |
-| PMI Proxy | NAPM / MANEMP | Level | + |
-
-### Financial Variables (Analysis Only)
-
-| Variable | FRED ID | Convention |
-|----------|---------|------------|
-| Yield Curve (10Y−2Y) | T10Y2Y | Monthly avg |
-| HY Credit Spread | BAMLH0A0HYM2 | Monthly avg |
-| S&P 500 | SP500 | Log return (month-end) |
-| VIX | VIXCLS | Monthly avg |
-
----
-
-## Key Output Files
-
-| File | Description |
-|------|-------------|
-| `outputs/pc1_series.csv` | Monthly PC1 macro signal |
-| `outputs/loadings.csv` | PC1 loadings per variable |
-| `outputs/regime_series.csv` | Slowdown regime (0=normal, 1=slowdown) |
-| `outputs/tables/variance_explained.csv` | Scree data |
-| `outputs/tables/contemporaneous_correlations.csv` | Financial vs. PC1 correlations |
-| `outputs/tables/lead_lag_bivariate.csv` | Lead-lag regression results |
-| `outputs/charts/01_pc1_signal.png` | PC1 time series with recession shading |
-| `outputs/charts/02_pc1_loadings.png` | Loading bar chart |
-| `outputs/charts/03_scree_plot.png` | Variance explained scree |
-| `outputs/charts/04_regime_chart.png` | Slowdown regime vs. NBER |
-| `outputs/charts/05_correlation_heatmap.png` | Financial correlations |
-| `outputs/charts/06_lead_lag_betas.png` | Lead-lag β coefficients |
-
----
-
-## Notebooks
-
-Run Jupyter:
-```bash
-jupyter notebook notebooks/
-```
-
-| Notebook | Contents |
-|----------|----------|
-| `01_data_exploration.ipynb` | Raw series plots, missing value audit, correlations |
-| `02_pca_signal.ipynb` | PCA walkthrough, loadings, PC1 chart |
-| `03_financial_linkage.ipynb` | Contemporaneous + lead-lag analysis |
-| `04_regime_analysis.ipynb` | Regime classification vs. NBER |
+Full technical methodology is available in the [Methodology Report](Methodology_Report.md).
