@@ -30,7 +30,7 @@ def get_fred_client() -> Fred:
     api_key = os.getenv("FRED_API_KEY")
     if not api_key or api_key == "your_api_key_here":
         raise EnvironmentError(
-            "FRED_API_KEY not set. Copy .env.example → .env and add your key.\n"
+            "FRED_API_KEY not set. Copy .env.example -> .env and add your key.\n"
             "Get a free key at: https://fred.stlouisfed.org/docs/api/api_key.html"
         )
     return Fred(api_key=api_key)
@@ -77,7 +77,7 @@ def fetch_all_macro(fred: Fred, save: bool = True) -> pd.DataFrame:
         try:
             s = fetch_fred_series(fred, series_id)
             print(f"  [OK]  {col_name:30s} ({series_id}) — {len(s)} obs, "
-                  f"{s.index[0].date()} → {s.index[-1].date()}")
+                  f"{s.index[0].date()} -> {s.index[-1].date()}")
         except Exception as e:
             # Try fallback for PMI proxy
             fallback = config.PMI_FALLBACK_SERIES.get(col_name)
@@ -135,7 +135,7 @@ def fetch_all_financial(fred: Fred, save: bool = True) -> pd.DataFrame:
             
             s.name = col_name
             print(f"  [OK]  {col_name:30s} ({series_id}) — {len(s)} obs, "
-                  f"{s.index[0].date()} → {s.index[-1].date()}")
+                  f"{s.index[0].date()} -> {s.index[-1].date()}")
             frames[col_name] = s
 
             if save:
@@ -150,7 +150,9 @@ def fetch_all_financial(fred: Fred, save: bool = True) -> pd.DataFrame:
 
 def fetch_reference_series(fred: Fred, save: bool = True) -> pd.DataFrame:
     """
-    Fetch NBER recession indicator and CFNAI for benchmarking.
+    Fetch NBER recession indicator, CFNAI, and 3-Month T-Bill rate (TB3MS)
+    for benchmarking.  TB3MS is used as the risk-free rate in Sharpe and
+    Jensen's alpha calculations.
 
     Returns a DataFrame (date index, one column per series).
     """
@@ -171,6 +173,37 @@ def fetch_reference_series(fred: Fred, save: bool = True) -> pd.DataFrame:
             print(f"  [FAIL] {col_name} ({series_id}): {e}")
 
     return pd.DataFrame(frames)
+
+
+def load_rf_rate(align_index: pd.DatetimeIndex = None) -> pd.Series:
+    """
+    Load the 3-Month T-Bill rate (TB3MS) from data/raw/ and convert from
+    annualised % to a monthly decimal for use in Sharpe / alpha calculations.
+
+    Formula: monthly_rf = annual_pct / 100 / 12
+
+    Parameters
+    ----------
+    align_index : optional DatetimeIndex; if provided the series is reindexed
+                  and forward-filled to match the portfolio return dates.
+
+    Returns
+    -------
+    pd.Series of monthly risk-free rates as decimals.
+    """
+    try:
+        rf = load_raw_series("tbill_3m")
+        rf_monthly = rf / 100 / 12          # annualised % → monthly decimal
+        rf_monthly.name = "rf_monthly"
+        if align_index is not None:
+            rf_monthly = rf_monthly.reindex(align_index, method="ffill").fillna(0)
+        return rf_monthly
+    except FileNotFoundError:
+        print("  [WARN] tbill_3m.csv not found in data/raw/ — "
+              "run with --fetch to download TB3MS. Rf defaulting to 0.")
+        if align_index is not None:
+            return pd.Series(0.0, index=align_index, name="rf_monthly")
+        return pd.Series(dtype=float, name="rf_monthly")
 
 
 def fetch_portfolio_assets(save: bool = True) -> pd.DataFrame:

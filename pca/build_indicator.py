@@ -1,12 +1,22 @@
 """
 pca/build_indicator.py
-Runs PCA on the standardized macro Z-matrix, extracts PC1,
-applies sign normalization, and provides diagnostic outputs.
+Runs PCA on the TRANSFORMED (pre-Z-score) macro matrix to derive eigenvectors,
+then projects the Z-scored matrix onto PC1 to produce the signal.
+
+Two-step design (per professor's feedback):
+  Step A — fit_pca_on_transformed(): compute VarCov and eigenvectors from
+            the raw-transformed (not Z-scored) data. This avoids computing
+            second moments of second moments (cov of Z-scores).
+  Step B — project_zscore_to_pc1(): project the expanding-window Z-scores
+            onto the PC1 eigenvector. Z-scores are used here because they
+            give each variable equal weight in the signal (unit variance),
+            which is the appropriate place for standardization.
 """
 
 import pandas as pd
 import numpy as np
 from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
 from typing import Tuple
 import sys
 import os
@@ -19,16 +29,101 @@ import config
 
 
 # ---------------------------------------------------------------------------
-# PCA runner
+# Step A: Fit PCA on transformed (NOT Z-scored) data
+# ---------------------------------------------------------------------------
+
+def fit_pca_on_transformed(
+    X_transformed: pd.DataFrame,
+    n_components: int = None,
+) -> Tuple[PCA, StandardScaler]:
+    """
+    Derive eigenvectors from the raw-transformed (pre-Z-score) panel.
+
+    Internally scales X for numerical stability, but this scaling is done
+    inside sklearn's PCA via StandardScaler — it is NOT the same as the
+    expanding-window Z-scores used for the signal. The VarCov structure
+    therefore reflects the covariance of the original transformed variables,
+    not the covariance of already-standardized Z-scores.
+
+    Parameters
+    ----------
+    X_transformed : (T × N) DataFrame of transformed variables (post
+                    pct_mom / log_return / level, BEFORE Z-scoring).
+                    Must have no NaN rows.
+    n_components  : number of PCs to retain (None = all)
+
+    Returns
+    -------
+    pca    : fitted sklearn PCA object (eigenvectors in pca.components_)
+    scaler : fitted StandardScaler (retained so we can explain loadings)
+    """
+    clean = X_transformed.dropna()
+    if n_components is None:
+        n_components = min(clean.shape)
+
+    # Scale for PCA stability — this is the ONLY place we standardize for PCA
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(clean.values)
+
+    pca = PCA(n_components=n_components, svd_solver="full")
+    pca.fit(X_scaled)
+
+    print(f"  PCA fitted on TRANSFORMED data: "
+          f"{clean.shape[0]} obs × {clean.shape[1]} variables")
+    print(f"  PC1 explains {pca.explained_variance_ratio_[0]*100:.1f}% of variance")
+
+    return pca, scaler
+
+
+# ---------------------------------------------------------------------------
+# Step B: Project expanding-window Z-scores onto PC1 eigenvector
+# ---------------------------------------------------------------------------
+
+def project_zscore_to_pc1(
+    pca: PCA,
+    Z: pd.DataFrame,
+) -> pd.Series:
+    """
+    Produce the PC1 signal by projecting the expanding-window Z-score matrix
+    onto the PC1 eigenvector derived in fit_pca_on_transformed().
+
+    Z-scores are used here (not the raw transformed values) so that each
+    variable contributes proportionally to its information content rather
+    than its raw scale. This is the correct place for standardization.
+
+    Parameters
+    ----------
+    pca : fitted PCA object from fit_pca_on_transformed()
+    Z   : (T × N) DataFrame of expanding-window Z-scores
+          (output of standardize_panel → apply_sign_alignment → prepare_pca_matrix)
+
+    Returns
+    -------
+    pd.Series of PC1 scores with the same DatetimeIndex as Z, named 'pc1'
+    """
+    pc1_loadings = pca.components_[0]   # shape (N,)
+    Z_clean = Z.dropna()
+    pc1_scores = Z_clean.values @ pc1_loadings
+    return pd.Series(pc1_scores, index=Z_clean.index, name="pc1")
+
+
+# ---------------------------------------------------------------------------
+# Legacy entry-point: run_pca / extract_pc1 — kept for backward compatibility
+# but now internally delegates to the two-step approach.
 # ---------------------------------------------------------------------------
 
 def run_pca(Z: pd.DataFrame, n_components: int = None) -> Tuple[PCA, np.ndarray]:
     """
-    Fit sklearn PCA on the standardized macro matrix Z.
+    Backward-compatible wrapper.
+
+    NOTE: If you have access to the pre-Z-score transformed panel, prefer
+    calling fit_pca_on_transformed() + project_zscore_to_pc1() directly
+    (see main.py stage_pca). This wrapper fits PCA on whatever matrix is
+    passed in — if Z is already Z-scored, the VarCov issue is present.
 
     Parameters
     ----------
-    Z            : (T × N) DataFrame of standardized, sign-aligned macro variables
+    Z            : (T × N) DataFrame (ideally transformed, not Z-scored)
     n_components : number of components to retain (None = all)
 
     Returns
@@ -55,16 +150,6 @@ def extract_pc1(
 ) -> pd.Series:
     """
     Return PC1 as a pd.Series with the same DatetimeIndex as Z.
-
-    Parameters
-    ----------
-    pca    : fitted PCA object
-    scores : component scores from run_pca()
-    Z      : original standardized DataFrame (used for index)
-
-    Returns
-    -------
-    pd.Series named 'pc1' with datetime index
     """
     pc1 = pd.Series(scores[:, 0], index=Z.index, name="pc1")
     return pc1

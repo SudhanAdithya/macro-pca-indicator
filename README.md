@@ -1,6 +1,6 @@
 # Macro-PCA Recession Indicator & Portfolio Optimization
 
-**Team:** Siddhanth Yadav · Kavin Dhanasekar · Sudhan Adithya
+**Team:** Siddhant Yadav · Kavin Dhanasekar · Sudhan Adithya
 
 This project implements a robust macroeconomic signaling engine designed to identify **Economic Recession Regimes**. By applying Principal Component Analysis (PCA) to a broad panel of high-frequency indicators, we extract a unified "latent" signal that captures synchronized economic contractions and drives high-precision tactical asset allocation.
 
