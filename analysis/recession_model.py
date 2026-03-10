@@ -171,7 +171,7 @@ def train_test_split_time(
     y_test  = y[y.index >= split]
 
     print(f"  Train: {len(X_train)} obs "
-          f"({X_train.index[0].date()} → {X_train.index[-1].date()})")
+          f"({X_train.index[0].date()} -> {X_train.index[-1].date()})")
     print(f"  Test:  {len(X_test)} obs "
-          f"({X_test.index[0].date()} → {X_test.index[-1].date()})")
+          f"({X_test.index[0].date()} -> {X_test.index[-1].date()})")
     return X_train, X_test, y_train, y_test

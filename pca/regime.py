@@ -57,8 +57,8 @@ def classify_regime(
     whether PC1 is below a given threshold.
 
     Convention:
-        slowdown = 1  (PC1 < threshold  →  weak macro conditions)
-        normal   = 0  (PC1 >= threshold →  normal/expanding conditions)
+        slowdown = 1  (PC1 < threshold  ->  weak macro conditions)
+        normal   = 0  (PC1 >= threshold ->  normal/expanding conditions)
 
     Parameters
     ----------

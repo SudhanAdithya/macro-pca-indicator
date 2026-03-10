@@ -125,12 +125,12 @@ def contemporaneous_regressions(
     ----------
     pc1             : PC1 macro signal
     financial_panel : DataFrame of financial variables
-    direction       : 'financial_on_pc1' → financial_var ~ PC1  (default)
-                      'pc1_on_financial' → PC1 ~ financial_var
+    direction       : 'financial_on_pc1' -> financial_var ~ PC1  (default)
+                      'pc1_on_financial' -> PC1 ~ financial_var
 
     Returns
     -------
-    dict mapping column name → statsmodels results object
+    dict mapping column name -> statsmodels results object
     """
     results = {}
 

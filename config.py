@@ -37,8 +37,8 @@ PMI_FALLBACK_SERIES = {
 FINANCIAL_SERIES = {
     "yc_10y2y":    "T10Y2Y",    # 10-Year minus 2-Year Treasury Constant Maturity
     "hy_spread":   "BAMLH0A0HYM2",  # ICE BofA US High Yield OAS
-    "sp500":       "SP500",     # S&P 500 Index Level (daily → month-end)
-    "vix":         "VIXCLS",    # CBOE VIX (daily → monthly avg)
+    "sp500":       "SP500",     # S&P 500 Index Level (daily -> month-end)
+    "vix":         "VIXCLS",    # CBOE VIX (daily -> monthly avg)
 }
 
 # ---------------------------------------------------------------------------
@@ -47,6 +47,7 @@ FINANCIAL_SERIES = {
 REFERENCE_SERIES = {
     "nber_recession": "USREC",  # NBER-based Recession Indicator (0/1)
     "cfnai":          "CFNAI",  # Chicago Fed National Activity Index
+    "tbill_3m":       "TB3MS",  # 3-Month T-Bill rate — risk-free rate for Sharpe & Jensen's alpha
 }
 
 # ---------------------------------------------------------------------------
@@ -72,8 +73,8 @@ TRANSFORM_MAP = {
 
 # ---------------------------------------------------------------------------
 # Sign convention map
-# +1  → variable is ALREADY positively oriented (high = good)
-# -1  → variable needs to be flipped (high = bad)
+# +1  -> variable is ALREADY positively oriented (high = good)
+# -1  -> variable needs to be flipped (high = bad)
 # Applied AFTER standardization to align all variables so that:
 #       High z-score = stronger macro conditions
 # ---------------------------------------------------------------------------
@@ -117,8 +118,16 @@ FINANCIAL_COLS = [
 # ---------------------------------------------------------------------------
 # Regime classification parameters
 # ---------------------------------------------------------------------------
-REGIME_THRESHOLD = 0.0          # PC1 < threshold → slowdown regime
+REGIME_THRESHOLD = 0.0          # PC1 < threshold -> slowdown regime
 SMOOTHING_WINDOW  = 3           # months for rolling average smoothing
+
+# Z-score / backtest precision parameters
+ZSCORE_MIN_PERIODS   = 36   # minimum months of history before emitting an expanding Z-score;
+                             # earlier rows are NaN and dropped by drop_leading_nans()
+SIGNAL_LAG_MONTHS    = 1    # months between signal observation and trade execution;
+                             # signal at month t drives allocation at month t+1
+TRANSACTION_COST_BPS = 5    # basis points charged per unit of one-way turnover on each rebalance
+                             # (applied equally to benchmark 60/40 and dynamic strategies)
 
 # ---------------------------------------------------------------------------
 # Output paths
@@ -141,8 +150,10 @@ FIG_SIZE_SQUARE       = (8, 6)
 # Portfolio Optimization Parameters
 # ---------------------------------------------------------------------------
 PORTFOLIO_ASSETS = {
-    "stocks": "SPY",   # S&P 500 ETF
+    "stocks": "SPY",   # S&P 500 ETF (total-return, dividend-adjusted via yfinance Adj Close)
     "bonds":  "AGG"    # iShares Core U.S. Aggregate Bond ETF
+    # NOTE: ETFs used (not futures). Sharpe ratios use TB3MS as risk-free rate.
+    # Futures would require roll-cost modelling; ETF total-return is a standard academic proxy.
 }
 
 # Default 60/40 benchmark

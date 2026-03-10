@@ -289,7 +289,7 @@ def plot_correlation_heatmap(
 
 def plot_lead_lag_betas(
     bivariate_df: pd.DataFrame,
-    title: str = "Lead-Lag β Coefficients: Financial Variables → Future PC1",
+    title: str = "Lead-Lag β Coefficients: Financial Variables -> Future PC1",
 ) -> Tuple[plt.Figure, plt.Axes]:
     """
     Grouped bar chart of lead-lag regression β coefficients.

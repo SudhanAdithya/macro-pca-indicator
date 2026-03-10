@@ -69,7 +69,7 @@ def lead_lag_regression(
 
     Returns
     -------
-    dict mapping horizon h → statsmodels results object
+    dict mapping horizon h -> statsmodels results object
     """
     if leads is None:
         leads = [1, 3, 6]

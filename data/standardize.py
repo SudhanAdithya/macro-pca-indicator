@@ -7,8 +7,11 @@ Why this matters:
   - Sign alignment ensures all variables point in the same direction
     before PCA so that PC1 summarizes "macro strength" positively.
 
-Standardization is done over the full in-sample period (simple, defensible).
-Rolling / expanding window standardization is noted as an extension.
+Standardization uses an EXPANDING WINDOW (point-in-time) to avoid
+look-ahead bias in the backtest. At time t, mu and sigma are estimated
+using only data from inception through t-1 (shift(1) ensures no current-
+month leakage). A minimum of ZSCORE_MIN_PERIODS observations is required
+before a Z-score is emitted; earlier rows are NaN and dropped downstream.
 """
 
 import pandas as pd
@@ -30,8 +33,12 @@ import config
 
 def zscore_series(series: pd.Series) -> pd.Series:
     """
+    DEPRECATED for backtest use — retained only for unit-test compatibility.
+    Use expanding_zscore() for all pipeline calls.
+
     Full-sample z-score: Z = (X - mean) / std.
     NaN values are ignored in the mean/std calculation.
+    WARNING: uses future data; introduces look-ahead bias in backtests.
     """
     mu  = series.mean(skipna=True)
     sig = series.std(skipna=True, ddof=1)
@@ -40,12 +47,44 @@ def zscore_series(series: pd.Series) -> pd.Series:
     return (series - mu) / sig
 
 
+def expanding_zscore(series: pd.Series, min_periods: int = None) -> pd.Series:
+    """
+    Point-in-time expanding-window Z-score.
+
+    At each time t the mean and std are estimated from [0, t-1] only
+    (via .shift(1)), so no future information leaks into the signal.
+
+    Parameters
+    ----------
+    series      : raw transformed series
+    min_periods : minimum history required before emitting a score.
+                  Defaults to config.ZSCORE_MIN_PERIODS (36 months).
+                  Earlier rows will be NaN and dropped by drop_leading_nans.
+
+    Returns
+    -------
+    pd.Series of Z-scores, same index as input.
+    """
+    if min_periods is None:
+        min_periods = getattr(config, "ZSCORE_MIN_PERIODS", 36)
+
+    # Compute expanding mu and sigma up to t-1 (shift by 1 = no current-month data)
+    mu  = series.expanding(min_periods=min_periods).mean().shift(1)
+    sig = series.expanding(min_periods=min_periods).std(ddof=1).shift(1)
+
+    z = (series - mu) / sig
+    return z
+
+
 def standardize_panel(
     panel: pd.DataFrame,
     cols: List[str] = None,
 ) -> pd.DataFrame:
     """
-    Apply full-sample z-score standardization to specified columns.
+    Apply point-in-time expanding-window Z-score standardization.
+
+    Each column is standardized using only past data (no look-ahead).
+    mu and sigma at time t are estimated from data through t-1 only.
 
     Parameters
     ----------
@@ -67,8 +106,12 @@ def standardize_panel(
         if col not in df.columns:
             print(f"  [SKIP] '{col}' not in panel — skipping standardization.")
             continue
-        df[col] = zscore_series(df[col])
-        print(f"  Standardized '{col}' → μ≈{df[col].mean():.2e}, σ≈{df[col].std():.2f}")
+        df[col] = expanding_zscore(df[col])
+        non_nan = df[col].dropna()
+        if len(non_nan) > 0:
+            print(f"  Standardized '{col}' (expanding window) -> "
+                  f"first valid: {non_nan.index[0].date()}, "
+                  f"n={len(non_nan)}")
 
     return df
 
@@ -91,7 +134,7 @@ def apply_sign_alignment(
     Parameters
     ----------
     panel    : standardized monthly panel
-    sign_map : dict mapping col → +1 or -1.
+    sign_map : dict mapping col -> +1 or -1.
                Defaults to config.SIGN_MAP.
     cols     : columns to apply alignment to.
                Defaults to config.MACRO_PCA_COLS + config.FINANCIAL_COLS.
@@ -154,7 +197,7 @@ def prepare_pca_matrix(
 
     Z = panel[available].dropna()
     print(f"  PCA matrix shape: {Z.shape}  "
-          f"({Z.index[0].date()} → {Z.index[-1].date()})")
+          f"({Z.index[0].date()} -> {Z.index[-1].date()})")
     return Z
 
 

@@ -4,10 +4,10 @@ Converts raw (possibly daily) series to monthly frequency and merges
 all macro, financial, and reference data into one clean panel DataFrame.
 
 Convention used throughout:
-  - Macro series from FRED are already monthly → just resample to
+  - Macro series from FRED are already monthly -> just resample to
     month-start (MS) period to ensure a consistent date index.
   - Financial series (S&P 500, VIX, yield curve, HY spread) are DAILY
-    → converted using:
+    -> converted using:
         sp500   : month-end close (last observation of month)
         vix     : monthly average
         yc_10y2y: monthly average
@@ -27,7 +27,7 @@ import config
 
 
 # ---------------------------------------------------------------------------
-# Daily → Monthly converters
+# Daily -> Monthly converters
 # ---------------------------------------------------------------------------
 
 def to_monthly_avg(series: pd.Series) -> pd.Series:
@@ -74,10 +74,10 @@ def align_macro_to_monthly(macro_raw: pd.DataFrame) -> pd.DataFrame:
 def align_financial_to_monthly(financial_raw: pd.DataFrame) -> pd.DataFrame:
     """
     Convert daily financial panel to monthly using the agreed convention:
-      - sp500      → month-end close (last of month)
-      - vix        → monthly average
-      - yc_10y2y   → monthly average
-      - hy_spread  → monthly average
+      - sp500      -> month-end close (last of month)
+      - vix        -> monthly average
+      - yc_10y2y   -> monthly average
+      - hy_spread  -> monthly average
     """
     df = financial_raw.copy()
     df.index = pd.to_datetime(df.index)
@@ -89,7 +89,7 @@ def align_financial_to_monthly(financial_raw: pd.DataFrame) -> pd.DataFrame:
         if col == "sp500":
             monthly_frames[col] = to_month_end_close(s)
         else:
-            # vix, yc_10y2y, hy_spread → average
+            # vix, yc_10y2y, hy_spread -> average
             monthly_frames[col] = to_monthly_avg(s)
 
     return pd.DataFrame(monthly_frames)
@@ -149,10 +149,10 @@ def trim_to_overlap(panel: pd.DataFrame, min_coverage: float = 0.7) -> pd.DataFr
     """
     threshold = int(min_coverage * len(panel.columns))
     trimmed = panel.dropna(thresh=threshold)
-    print(f"  Panel rows before trim: {len(panel)}  →  after trim: {len(trimmed)}")
+    print(f"  Panel rows before trim: {len(panel)}  ->  after trim: {len(trimmed)}")
     
     if len(trimmed) > 0:
-        print(f"  Date range: {trimmed.index[0].date()} → {trimmed.index[-1].date()}")
+        print(f"  Date range: {trimmed.index[0].date()} -> {trimmed.index[-1].date()}")
     else:
         print("  Warning: Trimmed panel is empty. No overlapping data found for the given coverage threshold.")
         
