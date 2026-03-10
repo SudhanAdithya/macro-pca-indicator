@@ -14,3 +14,9 @@ data/raw/*.csv
 data/processed/*.csv
 outputs/charts/*.png
 outputs/tables/*.csv
+
+# Presentation & Reporting
+verify_ppt.py
+generate_ppt.py
+*.pptx
+~$*.pptx

@@ -132,8 +132,9 @@ TABLES_DIR          = "outputs/tables"
 # ---------------------------------------------------------------------------
 # Plot style
 # ---------------------------------------------------------------------------
-RECESSION_SHADE_COLOR = "#d3d3d3"
-SLOWDOWN_SHADE_COLOR  = "#ffe4b5"
+RECESSION_SHADE_COLOR = "#b0b0b0"  # Darker gray for better visibility
+RECESSION_HATCH       = "///"      # Diagonal hatching to distinguish from slowdown
+SLOWDOWN_SHADE_COLOR  = "#ffcc00"  # Vibrant amber/gold for high contrast
 FIG_DPI               = 150
 FIG_SIZE_WIDE         = (14, 5)
 FIG_SIZE_SQUARE       = (8, 6)
@@ -174,3 +175,9 @@ CONTINUOUS_WEIGHT_LIMITS = {
 
 PORTFOLIO_METRICS_PATH = "outputs/tables/portfolio_metrics.csv"
 PORTFOLIO_SERIES_PATH  = "outputs/portfolio_backtest.csv"
+
+# ---------------------------------------------------------------------------
+# Institutional Methodology Parameters
+# ---------------------------------------------------------------------------
+RISK_FREE_RATE_ANNUAL = 0.02  # 2% baseline
+BACKTEST_METHODOLOGY  = "futures"  # options: 'etf' or 'futures'

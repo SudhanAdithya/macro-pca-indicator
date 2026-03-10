@@ -60,12 +60,15 @@ def shade_recessions(
     if color is None:
         color = config.RECESSION_SHADE_COLOR
 
+    hatch = getattr(config, "RECESSION_HATCH", None)
+
     for i, (start, end) in enumerate(recession_periods):
         ax.axvspan(
             start, end,
             color=color, alpha=alpha,
+            hatch=hatch,
             label=label if i == 0 else "_nolegend_",
-            zorder=0,
+            zorder=2,  # Bring recessions forward
         )
 
 
@@ -85,7 +88,7 @@ def shade_regimes(
             start, end,
             color=color, alpha=alpha,
             label=label if i == 0 else "_nolegend_",
-            zorder=1,
+            zorder=1,  # Keep slowdowns behind recessions if they overlap
         )
 
 
